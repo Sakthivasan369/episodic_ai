@@ -6,6 +6,7 @@ import uvicorn
 from generator import generate_series_arc
 from analytics import analyze_series
 from script_doctor import consult_series
+from brand_safety import check_brand_safety
 
 # Initialize FastAPI app
 app = FastAPI(title="ArcEngine API")
@@ -25,7 +26,7 @@ async def health_check():
 @app.post("/generate-series")
 async def generate_series(request: StoryRequest):
     """
-    Main endpoint to generate a story arc, analyze it, and consult the AI Script Doctor.
+    Full pipeline: Generate -> Local Analytics -> AI Script Doctor -> Brand Safety.
     """
     # Requirement: If the user submits empty strings, raise a 400 error.
     if not request.concept.strip() or not request.mood.strip():
@@ -34,30 +35,33 @@ async def generate_series(request: StoryRequest):
             detail="Validation Error: 'concept' and 'mood' cannot be empty or whitespace-only strings."
         )
 
-    # 1. Logic Flow: Pass the variables to generate_series_arc
+    # 1. Generate the initial story arc
     series_data = generate_series_arc(request.concept, request.mood)
 
-    # 2. Error Handling: If the generator returns an "error" key, raise a 500 error.
+    # 2. Check for generation failures
     if isinstance(series_data, dict) and "error" in series_data:
         raise HTTPException(
             status_code=500, 
             detail=f"Story Generation Failed: {series_data['error']}"
         )
 
-    # 3. Logic Flow: Analyze and then Consult the AI Script Doctor
+    # 3. Augmentation & Safety Logic
     try:
-        # Step A: Local Analytics
+        # A: Run NLP Emotion & Cliffhanger Analytics
         augmented_result = analyze_series(series_data)
         
-        # Step B: AI Script Doctor (DSPy)
-        final_result = consult_series(augmented_result)
+        # B: Run DSPy AI Script Doctor for tension advice
+        consulted_result = consult_series(augmented_result)
+        
+        # C: Run Brand Safety Check (Toxicity Detection)
+        final_result = check_brand_safety(consulted_result)
         
         return final_result
     except Exception as e:
-        # Safety catch for downstream processing errors
+        # Prevent server crash for downstream failures
         raise HTTPException(
             status_code=500,
-            detail=f"Downstream Processing Error: {str(e)}"
+            detail=f"Pipeline Failure: {str(e)}"
         )
 
 if __name__ == "__main__":
