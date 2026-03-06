@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 1. Configure DSPy to use Groq API
-# Note: Ensure 'dspy-ai' is installed. We use the Groq LM provider.
+# Note: In DSPy 3.x, use dspy.LM() with 'groq/model_name'
 try:
-    groq_lm = dspy.Groq(
-        model="llama3-8b-8192", 
+    groq_lm = dspy.LM(
+        'groq/llama-3.1-8b-instant',
         api_key=os.environ.get("GROQ_API_KEY"),
         temperature=0.7,
         max_tokens=150
