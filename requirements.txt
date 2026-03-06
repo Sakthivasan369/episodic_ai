@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+groq
+pydantic
+python-dotenv
+requests
+transformers
+torch
+scikit-learn
+numpy
+pandas
+sentence-transformers
