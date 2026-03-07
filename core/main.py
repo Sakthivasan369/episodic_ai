@@ -8,7 +8,6 @@ from analytics import analyze_series
 from script_doctor import consult_series
 from brand_safety import check_brand_safety
 from continuity_engine import enhance_series_with_hooks
-
 # Initialize FastAPI app
 app = FastAPI(title="ArcEngine API")
 
@@ -16,6 +15,7 @@ app = FastAPI(title="ArcEngine API")
 class StoryRequest(BaseModel):
     concept: str
     mood: str
+    num_episodes: int = 5
 
 @app.get("/")
 async def health_check():
@@ -37,7 +37,7 @@ async def generate_series(request: StoryRequest):
         )
 
     # 1. Generate the initial story arc
-    series_data = generate_series_arc(request.concept, request.mood)
+    series_data = generate_series_arc(request.concept, request.mood, request.num_episodes)
 
     # 2. Check for generation failures
     if isinstance(series_data, dict) and "error" in series_data:

@@ -8,7 +8,7 @@ load_dotenv()
 # Note: In DSPy 3.x, use dspy.LM() with 'groq/model_name'
 try:
     groq_lm = dspy.LM(
-        'groq/llama-3.1-8b-instant',
+        'groq/llama-3.3-70b-versatile',
         api_key=os.environ.get("GROQ_API_KEY"),
         temperature=0.7,
         max_tokens=150

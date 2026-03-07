@@ -13,6 +13,7 @@ class Episode(BaseModel):
     emotion_tag: str
     open_loop: str
     cliffhanger_action: str
+    seo_hashtags: List[str] = []
 
 class SeriesArc(BaseModel):
     series_title: str

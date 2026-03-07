@@ -1,18 +1,30 @@
 from transformers import pipeline
 
-# 1. Emotion analysis pipeline (Removed top_k=None to safely return just the #1 emotion)
-print("Loading Emotion Model...")
-emotion_classifier = pipeline(
-    "text-classification",
-    model="j-hartmann/emotion-english-distilroberta-base"
-)
+# Lazy loading globals
+_emotion_classifier = None
+_cliffhanger_classifier = None
 
-# 2. Zero-shot classification pipeline for cliffhanger scoring
-print("Loading Cliffhanger Model...")
-cliffhanger_classifier = pipeline(
-    "zero-shot-classification",
-    model="facebook/bart-large-mnli"
-)
+def _get_emotion_classifier():
+    """Lazy load emotion classifier on first use."""
+    global _emotion_classifier
+    if _emotion_classifier is None:
+        print("Loading Emotion Model...")
+        _emotion_classifier = pipeline(
+            "text-classification",
+            model="j-hartmann/emotion-english-distilroberta-base"
+        )
+    return _emotion_classifier
+
+def _get_cliffhanger_classifier():
+    """Lazy load cliffhanger classifier on first use."""
+    global _cliffhanger_classifier
+    if _cliffhanger_classifier is None:
+        print("Loading Cliffhanger Model...")
+        _cliffhanger_classifier = pipeline(
+            "zero-shot-classification",
+            model="facebook/bart-large-mnli"
+        )
+    return _cliffhanger_classifier
 
 def analyze_series(series_data: dict) -> dict:
     """
@@ -27,10 +39,12 @@ def analyze_series(series_data: dict) -> dict:
         
         if text_for_emotion.strip():
             try:
+                # Get classifier lazily
+                emotion_classifier = _get_emotion_classifier()
                 # Without top_k, it returns: [{'label': 'fear', 'score': 0.85}]
                 emotion_results = emotion_classifier(text_for_emotion)
-                dominant_emotion = emotion_results[0] 
-                
+                dominant_emotion = emotion_results[0]
+
                 episode["calculated_emotion"] = dominant_emotion['label'].capitalize()
                 episode["emotion_intensity"] = round(dominant_emotion['score'], 4)
             except Exception as e:
@@ -43,6 +57,8 @@ def analyze_series(series_data: dict) -> dict:
         if cliffhanger_text.strip():
             candidate_labels = ["unresolved mystery", "physical danger", "peaceful resolution"]
             try:
+                # Get classifier lazily
+                cliffhanger_classifier = _get_cliffhanger_classifier()
                 # This returns a dictionary of labels and their probability scores
                 cliffhanger_results = cliffhanger_classifier(cliffhanger_text, candidate_labels)
                 
