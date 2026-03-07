@@ -83,17 +83,41 @@ if generate and concept:
             error_detail = error_data.get("detail", "Unknown error occurred")
             st.error(f"API Error ({response.status_code}): {error_detail}")
 
-# Download Button in Sidebar if data exists
+# Download Buttons in Sidebar if data exists
 if st.session_state.data:
     st.sidebar.divider()
     st.sidebar.subheader("Export Data")
     
+    # JSON Export
     json_string = json.dumps(st.session_state.data, indent=2)
     st.sidebar.download_button(
-        label="Download Series Arc (JSON)",
+        label="Download as JSON",
         data=json_string,
         file_name="series_arc.json",
         mime="application/json"
+    )
+
+    # Text Export
+    data = st.session_state.data
+    text_content = f"SERIES TITLE: {data.get('series_title', 'N/A')}\n"
+    text_content += f"MOOD: {mood}\n"
+    text_content += "="*30 + "\n\n"
+    
+    for ep in data.get("episodes", []):
+        text_content += f"EPISODE {ep.get('episode_number')}: {ep.get('click_title', ep.get('title'))}\n"
+        text_content += f"VIRAL HOOK: {ep.get('viral_hook')}\n"
+        text_content += f"SUMMARY: {ep.get('summary')}\n"
+        text_content += f"CLIFFHANGER: {ep.get('cliffhanger_action')}\n"
+        text_content += f"HASHTAGS: {' '.join(ep.get('seo_hashtags', []))}\n"
+        if ep.get('director_advice'):
+            text_content += f"DIRECTOR ADVICE: {ep.get('director_advice')}\n"
+        text_content += "-"*20 + "\n\n"
+
+    st.sidebar.download_button(
+        label="Download as TXT",
+        data=text_content,
+        file_name="series_arc.txt",
+        mime="text/plain"
     )
 
 # ------------------------------
@@ -157,10 +181,16 @@ if data:
 
             with st.expander(f"Episode {ep.get('episode_number', 'N/A')}"):
 
-                st.subheader("Title")
+                st.subheader("Viral Title")
+                st.write(ep.get("click_title", "N/A"))
+
+                st.subheader("Viral Hook")
+                st.write(ep.get("viral_hook", "N/A"))
+
+                st.subheader("Title (Original)")
                 st.write(ep.get("title", "N/A"))
 
-                st.subheader("Hook")
+                st.subheader("Hook (Original)")
                 st.write(ep.get("open_loop", "N/A"))
 
                 st.subheader("Summary")

@@ -10,3 +10,4 @@ scikit-learn
 numpy
 pandas
 sentence-transformers
+sentencepiece
