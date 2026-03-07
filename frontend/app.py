@@ -75,7 +75,8 @@ if generate and concept:
                 "concept": concept,
                 "mood": mood,
                 "num_episodes": num_episodes
-            }
+            },
+            timeout=600
         )
 
         if response.status_code == 200:
