@@ -14,3 +14,6 @@ pandas
 sentence-transformers
 instructor
 plotly
+dspy
+requests
+sentencepiece
