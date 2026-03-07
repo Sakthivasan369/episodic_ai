@@ -13,3 +13,4 @@ numpy
 pandas
 sentence-transformers
 instructor
+plotly
