@@ -2,8 +2,8 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
+import json
 import os
-
 
 BASE_URL = os.environ.get("API_URL", "http://localhost:8000")
 API_URL = f"{BASE_URL}/generate-series"
@@ -24,21 +24,30 @@ concept = st.sidebar.text_area(
     placeholder="A hacker finds a file predicting crimes..."
 )
 
-moods = [
+# Number of Episodes (5-8)
+num_episodes = st.sidebar.number_input(
+    "Number of Episodes",
+    min_value=5,
+    max_value=8,
+    value=5,
+    step=1
+)
+
+# Director's Mood
+mood_presets = [
     "Gritty Cyberpunk",
     "Lighthearted Comedy",
     "True Crime",
     "Sci-Fi Thriller",
-    "Dark Mystery",
-    "Custom..."
+    "Dark Mystery"
 ]
 
-selected_mood = st.sidebar.selectbox("Director's Mood", moods)
+selected_preset = st.sidebar.selectbox("Mood Presets", ["Custom"] + mood_presets)
 
-if selected_mood == "Custom...":
-    mood = st.sidebar.text_input("Enter Custom Mood")
+if selected_preset == "Custom":
+    mood = st.sidebar.text_input("Director's Mood", placeholder="Enter custom mood name...")
 else:
-    mood = selected_mood
+    mood = st.sidebar.text_input("Director's Mood", value=selected_preset)
 
 generate = st.sidebar.button("Generate Series Arc")
 
@@ -52,7 +61,9 @@ st.title("🎬 ArcEngine Episodic Intelligence")
 # API CALL
 # ------------------------------
 
-data = None
+# Initialize session state for data if not present
+if "data" not in st.session_state:
+    st.session_state.data = None
 
 if generate and concept:
 
@@ -62,20 +73,59 @@ if generate and concept:
             API_URL,
             json={
                 "concept": concept,
-                "mood": mood
+                "mood": mood,
+                "num_episodes": num_episodes
             }
         )
 
         if response.status_code == 200:
-            data = response.json()
+            st.session_state.data = response.json()
         else:
             error_data = response.json()
             error_detail = error_data.get("detail", "Unknown error occurred")
             st.error(f"API Error ({response.status_code}): {error_detail}")
 
+# Download Buttons in Sidebar if data exists
+if st.session_state.data:
+    st.sidebar.divider()
+    st.sidebar.subheader("Export Data")
+    
+    # JSON Export
+    json_string = json.dumps(st.session_state.data, indent=2)
+    st.sidebar.download_button(
+        label="Download as JSON",
+        data=json_string,
+        file_name="series_arc.json",
+        mime="application/json"
+    )
+
+    # Text Export
+    data = st.session_state.data
+    text_content = f"SERIES TITLE: {data.get('series_title', 'N/A')}\n"
+    text_content += f"MOOD: {mood}\n"
+    text_content += "="*30 + "\n\n"
+    
+    for ep in data.get("episodes", []):
+        text_content += f"EPISODE {ep.get('episode_number')}: {ep.get('click_title', ep.get('title'))}\n"
+        text_content += f"VIRAL HOOK: {ep.get('viral_hook')}\n"
+        text_content += f"SUMMARY: {ep.get('summary')}\n"
+        text_content += f"CLIFFHANGER: {ep.get('cliffhanger_action')}\n"
+        if ep.get('director_advice'):
+            text_content += f"DIRECTOR ADVICE: {ep.get('director_advice')}\n"
+        text_content += "-"*20 + "\n\n"
+
+    st.sidebar.download_button(
+        label="Download as TXT",
+        data=text_content,
+        file_name="series_arc.txt",
+        mime="text/plain"
+    )
+
 # ------------------------------
 # ZONE 2: ANALYTICS DASHBOARD
 # ------------------------------
+
+data = st.session_state.data
 
 if data:
 
@@ -96,13 +146,10 @@ if data:
         avg_emotion = sum(emotion_scores) / len(emotion_scores)
         avg_cliff = sum(cliff_scores) / len(cliff_scores)
 
-        brand_safety = data.get("brand_safety", "Safe")
-
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
 
         col1.metric("Avg Emotion", round(avg_emotion, 2))
         col2.metric("Cliffhanger Score", round(avg_cliff, 2))
-        col3.metric("Brand Safety", brand_safety)
 
         # Narrative tension graph
 
@@ -132,10 +179,16 @@ if data:
 
             with st.expander(f"Episode {ep.get('episode_number', 'N/A')}"):
 
-                st.subheader("Title")
+                st.subheader("Viral Title")
+                st.write(ep.get("click_title", "N/A"))
+
+                st.subheader("Viral Hook")
+                st.write(ep.get("viral_hook", "N/A"))
+
+                st.subheader("Title (Original)")
                 st.write(ep.get("title", "N/A"))
 
-                st.subheader("Hook")
+                st.subheader("Hook (Original)")
                 st.write(ep.get("open_loop", "N/A"))
 
                 st.subheader("Summary")
@@ -146,6 +199,11 @@ if data:
 
                 st.subheader("Emotion Tag")
                 st.write(ep.get("emotion_tag", "N/A"))
+                
+                # Show Script Doctor Advice if available
+                advice = ep.get("director_advice")
+                if advice:
+                    st.info(f"**Director's Advice:** {advice}")
 
                 if ep.get("continuity_warning"):
                     st.warning(ep.get("continuity_warning"))

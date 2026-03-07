@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 
 from prompts import get_system_prompt
 from schema import SeriesArc, Episode, ProtagonistProfile
-from seo_hashtag_generator import generate_hashtags
 
 load_dotenv()
 
@@ -45,15 +44,6 @@ def generate_series_arc(concept: str, mood: str, num_episodes: int = 5) -> dict:
             
             # If successful, convert Pydantic object to a dictionary
             arc_dict = response.model_dump()
-            
-            # Post-process: Apply SEO hashtags to each episode using the lightweight generator
-            for episode in arc_dict["episodes"]:
-                # Generate script-based hashtags
-                script_hashtags = generate_hashtags(episode)
-                # Combine with model-generated hashtags and remove duplicates
-                combined_hashtags = list(set(episode.get("seo_hashtags", []) + script_hashtags))
-                episode["seo_hashtags"] = sorted(combined_hashtags)
-                
             return arc_dict
             
         except Exception as e:
@@ -68,7 +58,7 @@ if __name__ == "__main__":
     test_concept = "A hacker finds a file predicting the future."
     test_mood = "Gritty Cyberpunk"
     
-    print("Generating story arc and hashtags... please wait.")
+    print("Generating story arc... please wait.")
     result = generate_series_arc(test_concept, test_mood)
     
     import json

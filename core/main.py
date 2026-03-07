@@ -7,8 +7,8 @@ import uvicorn
 from generator import generate_series_arc
 from analytics import analyze_series
 from script_doctor import consult_series
-from brand_safety import check_brand_safety
 from continuity_engine import enhance_series_with_hooks
+
 # Initialize FastAPI app
 app = FastAPI(title="ArcEngine API")
 
@@ -28,7 +28,7 @@ async def health_check():
 @app.post("/generate-series")
 async def generate_series(request: StoryRequest):
     """
-    Full pipeline: Generate -> Analytics -> Script Doctor -> Viral Hooks -> Brand Safety.
+    Full pipeline: Generate -> Analytics -> Script Doctor -> Viral Hooks.
     """
     # Requirement: If the user submits empty strings, raise a 400 error.
     if not request.concept.strip() or not request.mood.strip():
@@ -56,10 +56,7 @@ async def generate_series(request: StoryRequest):
         consulted_result = consult_series(augmented_result)
         
         # C: Generate Viral Hooks and Clickworthy Titles (Continuity Engine)
-        viral_result = enhance_series_with_hooks(consulted_result)
-        
-        # D: Final Brand Safety Check (Toxicity Detection)
-        final_result = check_brand_safety(viral_result)
+        final_result = enhance_series_with_hooks(consulted_result)
         
         return final_result
     except Exception as e:
