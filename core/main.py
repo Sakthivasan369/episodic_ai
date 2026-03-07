@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
@@ -11,6 +12,15 @@ from continuity_engine import enhance_series_with_hooks
 
 # Initialize FastAPI app
 app = FastAPI(title="ArcEngine API")
+
+# 1. Fix CORS: Add CORSMiddleware to allow all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Define the Pydantic model for the request
 class StoryRequest(BaseModel):
@@ -25,8 +35,9 @@ async def health_check():
     """
     return {"status": "healthy", "message": "ArcEngine API is running"}
 
+# 2. Fix Async Blocking: Change to standard def so FastAPI runs this in a thread pool
 @app.post("/generate-series")
-async def generate_series(request: StoryRequest):
+def generate_series(request: StoryRequest):
     """
     Full pipeline: Generate -> Analytics -> Script Doctor -> Viral Hooks.
     """
