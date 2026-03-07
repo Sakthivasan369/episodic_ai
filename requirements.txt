@@ -1,6 +1,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 fastapi
 uvicorn
+streamlit
 groq
 pydantic
 python-dotenv
@@ -11,3 +12,4 @@ scikit-learn
 numpy
 pandas
 sentence-transformers
+instructor
