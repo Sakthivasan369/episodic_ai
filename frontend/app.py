@@ -7,6 +7,7 @@ import os
 
 BASE_URL = os.environ.get("API_URL", "http://localhost:8000")
 API_URL = f"{BASE_URL}/generate-series"
+HEALTH_URL = f"{BASE_URL}/"
 
 st.set_page_config(
     page_title="ArcEngine",
@@ -18,6 +19,16 @@ st.set_page_config(
 # ------------------------------
 
 st.sidebar.title("ArcEngine Control Panel")
+
+# Health Check Status
+try:
+    health_resp = requests.get(HEALTH_URL, timeout=5)
+    if health_resp.status_code == 200:
+        st.sidebar.success("🟢 Backend Online")
+    else:
+        st.sidebar.error("🔴 Backend Error")
+except:
+    st.sidebar.error("🔴 Backend Offline")
 
 concept = st.sidebar.text_area(
     "Core Story Concept",
