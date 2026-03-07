@@ -7,6 +7,7 @@ ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", aggregation_strategy
 def generate_hashtags(episode_data: dict) -> list:
     """
     Extracts entities and generates clean, SEO-friendly hashtags from episode content.
+    Ensures no duplicates and consistent casing.
     """
     # Combine title, summary, and cliffhanger to extract meaningful context
     text = f"{episode_data.get('title', '')} {episode_data.get('summary', '')} {episode_data.get('cliffhanger_action', '')}"
@@ -18,17 +19,21 @@ def generate_hashtags(episode_data: dict) -> list:
     
     # 1. Process Entities
     for entity in entities:
-        # Clean the word: remove spaces and special characters
-        word = re.sub(r'\W+', '', entity["word"])
+        # Clean the word: remove spaces and special characters, force lowercase for uniqueness
+        word = re.sub(r'\W+', '', entity["word"]).lower()
         if len(word) > 2:
-            hashtags.add(f"#{word}")
+            hashtags.add(f"#{word.capitalize()}")
             
     # 2. Heuristic: Add emotion tags as hashtags
     if 'emotion_tag' in episode_data:
-        emotion = re.sub(r'\W+', '', episode_data['emotion_tag'])
-        hashtags.add(f"#{emotion}")
+        emotion = re.sub(r'\W+', '', episode_data['emotion_tag']).lower()
+        if len(emotion) > 2:
+            hashtags.add(f"#{emotion.capitalize()}")
 
     # 3. Industry standard tags for short-form video retention
-    hashtags.update(["#ShortFilm", "#Storytelling", "#MicroSeries"])
+    industry_tags = ["ShortFilm", "Storytelling", "MicroSeries"]
+    for tag in industry_tags:
+        hashtags.add(f"#{tag}")
 
-    return list(hashtags)
+    # Final cleaning: ensure no case-insensitive duplicates (already handled by set + capitalization)
+    return sorted(list(hashtags))
