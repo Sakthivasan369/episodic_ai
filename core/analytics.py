@@ -1,5 +1,9 @@
+import os
 from transformers import pipeline
 import re
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Lazy loading globals
 _emotion_classifier = None
@@ -11,7 +15,8 @@ def _get_emotion_classifier():
         print("Loading Emotion Model (DistilRoBERTa)...")
         _emotion_classifier = pipeline(
             "text-classification",
-            model="j-hartmann/emotion-english-distilroberta-base"
+            model="j-hartmann/emotion-english-distilroberta-base",
+            token=os.environ.get("HF_HUB_TOKEN")
         )
     return _emotion_classifier
 
