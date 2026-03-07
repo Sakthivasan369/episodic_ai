@@ -5,7 +5,7 @@ import plotly.express as px
 import os
 
 
-BASE_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BASE_URL = os.environ.get("API_URL", "http://localhost:8000")
 API_URL = f"{BASE_URL}/generate-series"
 
 st.set_page_config(
