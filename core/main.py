@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
@@ -69,5 +70,7 @@ async def generate_series(request: StoryRequest):
         )
 
 if __name__ == "__main__":
+    # Get port from environment variable for deployment (Railway/Heroku)
+    port = int(os.environ.get("PORT", 8000))
     # To run: python main.py
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=port)
