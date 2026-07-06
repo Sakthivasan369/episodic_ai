@@ -1,6 +1,14 @@
 def enhance_series_with_hooks(series_data: dict) -> dict:
     """
-    Passthrough since viral titles and hooks are now generated 
-    directly by the main Groq model via instructions in prompts.py.
+    Placeholder for the continuity engine.
+    This will eventually generate viral hooks and clickworthy titles.
     """
+    if "episodes" not in series_data:
+        return series_data
+
+    for i, episode in enumerate(series_data["episodes"]):
+        
+        episode["viral_hook"] = f"Hook for Episode {i+1}: What if this was the end?"
+        episode["click_title"] = f"EPISODE {i+1}: YOU WON'T BELIEVE IT!"
+    
     return series_data

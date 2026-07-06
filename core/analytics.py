@@ -1,67 +1,30 @@
-import os
-import requests
-import re
-from dotenv import load_dotenv
+from transformers import pipeline
 
-load_dotenv()
 
-# Hugging Face Inference API details
-API_URL = "https://api-inference.huggingface.co/models/j-hartmann/emotion-english-distilroberta-base"
-HF_TOKEN = os.environ.get("HF_HUB_TOKEN")
+_emotion_classifier = None
+_cliffhanger_classifier = None
 
-def _get_emotion_from_api(text: str) -> dict:
-    """
-    Calls the Hugging Face Inference API to get emotion labels.
-    Ensures zero RAM usage for model loading.
-    """
-    if not HF_TOKEN:
-        return {"label": "neutral", "score": 0.0}
+def _get_emotion_classifier():
+    """Lazy load emotion classifier on first use."""
+    global _emotion_classifier
+    if _emotion_classifier is None:
+        print("Loading Emotion Model...")
+        _emotion_classifier = pipeline(
+            "text-classification",
+            model="j-hartmann/emotion-english-distilroberta-base"
+        )
+    return _emotion_classifier
 
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    
-    try:
-        response = requests.post(API_URL, headers=headers, json={"inputs": text}, timeout=10)
-        
-        if response.status_code == 200:
-            # Response is typically a list of lists: [[{"label": "fear", "score": 0.9}, ...]]
-            results = response.json()
-            if isinstance(results, list) and len(results) > 0:
-                # The API returns labels sorted by score if requested, or just a list.
-                # We find the one with the highest score.
-                inner_results = results[0] if isinstance(results[0], list) else results
-                top_emotion = max(inner_results, key=lambda x: x['score'])
-                return top_emotion
-        return {"label": "neutral", "score": 0.0}
-    except Exception as e:
-        print(f"HF API Error: {e}")
-        return {"label": "neutral", "score": 0.0}
-
-def _calculate_lightweight_cliffhanger_score(text: str) -> float:
-    """
-    Calculates a tension/cliffhanger score using lightweight regex and keywords.
-    Avoids loading heavy LLMs to save RAM.
-    """
-    if not text:
-        return 0.0
-
-    score = 0.1 # Base score
-
-    # High-tension punctuation
-    if "?" in text: score += 0.2
-    if "!" in text: score += 0.2
-    if "..." in text: score += 0.1
-
-    # Tension keywords
-    tension_words = [
-        "suddenly", "reveals", "shocks", "danger", "secret", "truth", 
-        "trap", "betrayal", "death", "discovery", "mystery", "cliff"
-    ]
-
-    for word in tension_words:
-        if word in text.lower():
-            score += 0.15
-
-    return min(round(score, 4), 1.0)
+def _get_cliffhanger_classifier():
+    """Lazy load cliffhanger classifier on first use."""
+    global _cliffhanger_classifier
+    if _cliffhanger_classifier is None:
+        print("Loading Cliffhanger Model...")
+        _cliffhanger_classifier = pipeline(
+            "zero-shot-classification",
+            model="facebook/bart-large-mnli"
+        )
+    return _cliffhanger_classifier
 
 def analyze_series(series_data: dict) -> dict:
     """
@@ -71,19 +34,43 @@ def analyze_series(series_data: dict) -> dict:
         return series_data
 
     for episode in series_data["episodes"]:
-        # --- 1. Emotion Analysis (Offloaded to HF API) ---
+        
         text_for_emotion = f"{episode.get('summary', '')} {episode.get('visual_storyboard', '')}"
-
+        
         if text_for_emotion.strip():
-            result = _get_emotion_from_api(text_for_emotion[:512]) # API limit safety
-            episode["calculated_emotion"] = result['label'].capitalize()
-            episode["emotion_intensity"] = round(result['score'], 4)
-        else:
-            episode["calculated_emotion"] = "Neutral"
-            episode["emotion_intensity"] = 0.0
+            try:
+                
+                emotion_classifier = _get_emotion_classifier()
+                
+                emotion_results = emotion_classifier(text_for_emotion)
+                dominant_emotion = emotion_results[0]
 
-        # --- 2. Cliffhanger Scoring (Lightweight Rule-based) ---
+                episode["calculated_emotion"] = dominant_emotion['label'].capitalize()
+                episode["emotion_intensity"] = round(dominant_emotion['score'], 4)
+            except Exception as e:
+                print(f"Error during emotion analysis: {e}")
+                episode["calculated_emotion"] = "N/A"
+                episode["emotion_intensity"] = 0.0
+
+      
         cliffhanger_text = episode.get("cliffhanger_action", "")
-        episode["cliffhanger_score"] = _calculate_lightweight_cliffhanger_score(cliffhanger_text)
+        if cliffhanger_text.strip():
+            candidate_labels = ["unresolved mystery", "physical danger", "peaceful resolution"]
+            try:
+                
+                cliffhanger_classifier = _get_cliffhanger_classifier()
+                
+                cliffhanger_results = cliffhanger_classifier(cliffhanger_text, candidate_labels)
+                
+                #
+                scores = dict(zip(cliffhanger_results['labels'], cliffhanger_results['scores']))
+                
+                #
+                cliffhanger_score = scores.get("unresolved mystery", 0.0) + scores.get("physical danger", 0.0)
+                
+                episode["cliffhanger_score"] = round(cliffhanger_score, 4)
+            except Exception as e:
+                print(f"Error during cliffhanger analysis: {e}")
+                episode["cliffhanger_score"] = 0.0
 
     return series_data
