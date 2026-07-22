@@ -22,6 +22,7 @@ def sanitize_series_payload(series_data: dict) -> dict:
         clean_ep = {
             "episode_number": ep.get("episode_number"),
             "title": ep.get("title", "Untitled"),
+            "viral_hook": ep.get("viral_hook") or ep.get("open_loop", ""),
             "summary": ep.get("summary", ""),
             "cliffhanger_action": ep.get("cliffhanger_action") or ep.get("cliffhanger_text", ""),
             "emotion": ep.get("emotion", "Unknown"),
