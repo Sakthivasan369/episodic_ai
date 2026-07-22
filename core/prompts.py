@@ -82,9 +82,13 @@ Literal meaning: He is happy the launch went perfectly.
 Actual context: He is using heavy sarcasm to cope with a disastrous system crash.
 Correct Emotion: Frustration / Panic.
 
-TITLE RULES
-Generate ONE title.
-Maximum 8 words. Cinematic. Curiosity driven. No spoilers. No emojis. No clickbait tropes.
-
-Return ONLY JSON.
+VIRAL TITLE REQUIREMENTS
+- Max 8 words.
+- High curiosity gap (creates intrigue without revealing plot twists).
+- Style: Netflix episode title / viral YouTube Short (e.g., "The Midnight Text", "Unread", "The Angel's Game").
+- NEGATIVE CONSTRAINT 1: You are STRICTLY FORBIDDEN from using the word "Beyond" in any title.
+- NEGATIVE CONSTRAINT 2: Do NOT start titles with the same formula or recurring words (e.g., avoid starting every title with "The", "In The", or "Shadows"). 
+- NEGATIVE CONSTRAINT 3: Ensure absolute structural diversity across all generated titles.
+- Strictly NO clickbait tropes (e.g., "You Won't Believe", "Watch Until The End").
+- NO emojis, quotation marks, or excessive punctuation.
 """
