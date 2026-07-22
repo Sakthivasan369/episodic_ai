@@ -75,8 +75,19 @@ async def generate_series(request: StoryRequest):
     try:
         # ── Step 2: Narrative Intelligence (per episode) ───────────────
         logger.info("Step 2/6 — Running Narrative Intelligence...")
+        used_titles = []
         for episode in series_data.get("episodes", []):
-            analyze_episode_context(episode)
+            # Pass the running list of used titles to prevent repetition
+            context_analysis = analyze_episode_context(
+                episode, previous_titles=used_titles
+            )
+
+            # Record the newly generated title so the next episode knows to avoid it
+            new_title = context_analysis.get("episode_title", "")
+            if new_title:
+                used_titles.append(new_title)
+
+            episode.update(context_analysis)
 
         # ── Step 3: Cliffhanger scoring ────────────────────────────────
         logger.info("Step 3/6 — Calculating cliffhanger scores...")
