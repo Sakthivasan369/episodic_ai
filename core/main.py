@@ -7,6 +7,7 @@ Pipeline:
     3. analyze_series()           → Cliffhanger scoring (BART-MNLI)
     4. generate_hashtags()        → SEO hashtag generation (BERT-NER)
     5. check_brand_safety()       → Toxicity detection (toxic-bert)
+    6. sanitize_series_payload()  → Strip internal keys, enforce clean schema
 """
 
 import logging
@@ -19,6 +20,8 @@ from narrative_intelligence import analyze_episode_context
 from analytics import analyze_series
 from seo_hashtag_generator import generate_hashtags
 from brand_safety import check_brand_safety
+from schema import CleanSeriesResponse
+from utils import sanitize_series_payload
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,7 +46,7 @@ async def health_check():
     return {"status": "healthy", "message": "ArcEngine API is running"}
 
 
-@app.post("/generate-series")
+@app.post("/generate-series", response_model=CleanSeriesResponse)
 async def generate_series(request: StoryRequest):
     """
     Full pipeline:
@@ -58,7 +61,7 @@ async def generate_series(request: StoryRequest):
         )
 
     # ── Step 1: Base story generation ──────────────────────────────────
-    logger.info("Step 1/5 — Generating base story arc...")
+    logger.info("Step 1/6 — Generating base story arc...")
     series_data = generate_series_arc(
         request.concept, request.mood, request.num_episodes
     )
@@ -71,25 +74,29 @@ async def generate_series(request: StoryRequest):
 
     try:
         # ── Step 2: Narrative Intelligence (per episode) ───────────────
-        logger.info("Step 2/5 — Running Narrative Intelligence...")
+        logger.info("Step 2/6 — Running Narrative Intelligence...")
         for episode in series_data.get("episodes", []):
             analyze_episode_context(episode)
 
         # ── Step 3: Cliffhanger scoring ────────────────────────────────
-        logger.info("Step 3/5 — Calculating cliffhanger scores...")
+        logger.info("Step 3/6 — Calculating cliffhanger scores...")
         analyzed_result = analyze_series(series_data)
 
         # ── Step 4: SEO hashtag generation ─────────────────────────────
-        logger.info("Step 4/5 — Generating SEO hashtags...")
+        logger.info("Step 4/6 — Generating SEO hashtags...")
         for episode in analyzed_result.get("episodes", []):
             episode["seo_hashtags"] = generate_hashtags(episode)
 
         # ── Step 5: Brand safety check ─────────────────────────────────
-        logger.info("Step 5/5 — Running brand safety check...")
+        logger.info("Step 5/6 — Running brand safety check...")
         final_result = check_brand_safety(analyzed_result)
 
+        # ── Step 6: Sanitize payload ───────────────────────────────────
+        logger.info("Step 6/6 — Sanitizing payload...")
+        cleaned_payload = sanitize_series_payload(final_result)
+
         logger.info("Pipeline complete.")
-        return final_result
+        return cleaned_payload
 
     except Exception as e:
         logger.exception("Pipeline failure: %s", e)
