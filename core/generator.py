@@ -1,52 +1,56 @@
 import os
-from typing import List
+import logging
+from typing import Dict
 import instructor
 from groq import Groq
 from dotenv import load_dotenv
 
 from prompts import get_system_prompt
-from schema import SeriesArc, Episode, ProtagonistProfile
-from seo_hashtag_generator import generate_hashtags
+from schema import SeriesArc
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 
-client = instructor.from_groq(Groq(api_key=os.environ.get("GROQ_API_KEY")), mode=instructor.Mode.JSON)
+client = instructor.from_groq(
+    Groq(api_key=os.environ.get("GROQ_API_KEY")),
+    mode=instructor.Mode.JSON,
+)
 
-def generate_series_arc(concept: str, mood: str, num_episodes: int = 5) -> dict:
+
+def generate_series_arc(concept: str, mood: str, num_episodes: int = 5) -> Dict:
     """
-    Uses Instructor to call Llama-3.3-70B-Versatile and enforce a strict Pydantic schema
-    for generating a story arc, then applies SEO hashtags to each episode.
+    Uses Instructor to call Llama-3.3-70B-Versatile and enforce a strict
+    Pydantic schema for generating a base story arc.
+
+    Args:
+        concept: The core story concept from the user.
+        mood: The Director's mood / atmosphere.
+        num_episodes: Number of episodes to generate.
+
+    Returns:
+        A dictionary representing the full series arc, or an error dict.
     """
     system_prompt = get_system_prompt(mood, num_episodes)
 
     try:
-        
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             response_model=SeriesArc,
             max_retries=3,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Core Concept: {concept}"}
+                {"role": "user", "content": f"Core Concept: {concept}"},
             ],
             temperature=0.7,
         )
-        
-       
+
         arc_dict = response.model_dump()
-        
-        
-        for episode in arc_dict["episodes"]:
-           
-            script_hashtags = generate_hashtags(episode)
-            
-            combined_hashtags = list(set(episode.get("seo_hashtags", []) + script_hashtags))
-            episode["seo_hashtags"] = combined_hashtags
-            
+        logger.info("Base story arc generated: '%s'", arc_dict.get("series_title"))
         return arc_dict
-        
+
     except Exception as e:
+        logger.error("Story generation failed: %s", e)
         return {"error": str(e)}
 
 if __name__ == "__main__":

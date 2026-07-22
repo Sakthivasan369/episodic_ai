@@ -20,3 +20,9 @@ class SeriesArc(BaseModel):
     series_title: str
     protagonist_profile: ProtagonistProfile
     episodes: List[Episode]
+
+
+class NarrativeAnalysis(BaseModel):
+    """Schema for the Narrative Intelligence Engine response."""
+    episode_title: str
+    dominant_emotion: str
